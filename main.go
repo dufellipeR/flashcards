@@ -27,38 +27,50 @@ func checkDuplicateTerm(term string, flashcards map[string]string) bool {
 	return ok
 }
 
-func buildingFlashCards(quantity int) map[string]string {
-	flashcards := make(map[string]string)
+func add(flashcards map[string]string) (string, string) {
 
-	for i := 0; i < quantity; i++ {
+	fmt.Println("The card:")
+	term := handleInput()
+	isDuplicated := checkDuplicateTerm(term, flashcards)
 
-		fmt.Printf("The term for card #%d: \n", i+1)
-		term := handleInput()
-		isDuplicated := checkDuplicateTerm(term, flashcards)
-
-		for isDuplicated {
-			fmt.Printf("The term \"%s\" already exists. Try again: \n", term)
-			term = handleInput()
-			isDuplicated = checkDuplicateTerm(term, flashcards)
-		}
-
-		fmt.Printf("The definition for card #%d: \n", i+1)
-		definition := handleInput()
-		isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
-
-		for isDuplicated {
-			fmt.Printf("The definition \"%s\" already exists. Try again: \n", definition)
-			definition = handleInput()
-			isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
-		}
-
-		flashcards[term] = definition
+	for isDuplicated {
+		fmt.Printf("The card \"%s\" already exists. Try again: \n", term)
+		term = handleInput()
+		isDuplicated = checkDuplicateTerm(term, flashcards)
 	}
 
-	return flashcards
+	fmt.Println("The definition of the card:")
+	definition := handleInput()
+	isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
+
+	for isDuplicated {
+		fmt.Printf("The definition \"%s\" already exists. Try again: \n", definition)
+		definition = handleInput()
+		isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
+	}
+
+	return term, definition
 }
 
-func usingFlashCards(flashcards map[string]string) {
+func remove(flashcard *map[string]string) bool {
+	var pFlashcard *map[string]string
+	pFlashcard = flashcard
+
+	fmt.Println("Which card?")
+	card := handleInput()
+
+	if isDuplicated := checkDuplicateTerm(card, *pFlashcard); !isDuplicated {
+		fmt.Printf("Can't remove \"%s\": there is no such card. \n", card)
+		return false
+	}
+
+	delete(*pFlashcard, card)
+	fmt.Println("The card has been removed.")
+	return true
+
+}
+
+func ask(flashcards map[string]string) {
 
 	for key, value := range flashcards {
 		fmt.Printf("Print the definition of \"%s\": \n", key)
@@ -78,13 +90,10 @@ func usingFlashCards(flashcards map[string]string) {
 	}
 }
 
-type FlashCard struct {
-	Term, Definition string
-}
-
 func main() {
 
 	action := ""
+	flashcards := make(map[string]string)
 
 	for action != "exit" {
 
@@ -93,10 +102,12 @@ func main() {
 
 		switch action {
 		case "add":
-			fmt.Println("add")
+			term, definition := add(flashcards)
+			flashcards[term] = definition
+			fmt.Printf("The pair (\"%s\": \"%s\") has been added. ", term, definition)
 			break
 		case "remove":
-			fmt.Println("remove")
+			remove(&flashcards)
 			break
 		case "import":
 			fmt.Println("import")
@@ -105,7 +116,7 @@ func main() {
 			fmt.Println("export")
 			break
 		case "ask":
-			fmt.Println("ask")
+			ask(flashcards)
 			break
 		case "exit":
 			break

@@ -2,10 +2,8 @@ package main
 
 import (
 	"bufio"
-	"errors"
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 )
 
@@ -81,23 +79,55 @@ func usingFlashCards(flashcards map[string]string) {
 }
 
 type FlashCard struct {
-	term, definition string
+	Term, Definition string
 }
 
 func main() {
 
-	quantity := 0
+	action := ""
 
-	fmt.Print("Input the number of cards: \n")
-	quantity, _ = strconv.Atoi(handleInput())
+	for action != "exit" {
 
-	if quantity <= 0 {
-		err := errors.New("not a valid quantity")
-		fmt.Print(err)
+		fmt.Println("Input the action (add, remove, import, export, ask, exit): ")
+		action = handleInput()
+
+		switch action {
+		case "add":
+			fmt.Println("add")
+			break
+		case "remove":
+			fmt.Println("remove")
+			break
+		case "import":
+			fmt.Println("import")
+			break
+		case "export":
+			fmt.Println("export")
+			break
+		case "ask":
+			fmt.Println("ask")
+			break
+		case "exit":
+			break
+
+		default:
+			fmt.Printf("`%s` is not a valid action. \n", action)
+		}
+
 	}
 
-	flashcards := buildingFlashCards(quantity)
+	fmt.Println("Bye bye!")
 
-	usingFlashCards(flashcards)
+	//fmt.Print("Input the number of cards: \n")
+	//quantity, _ = strconv.Atoi(handleInput())
+	//
+	//if quantity <= 0 {
+	//	err := errors.New("not a valid quantity")
+	//	fmt.Print(err)
+	//}
+	//
+	//flashcards := buildingFlashCards(quantity)
+	//
+	//usingFlashCards(flashcards)
 
 }

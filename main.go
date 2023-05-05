@@ -2,7 +2,9 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
+	"log"
 	"os"
 	"strconv"
 	"strings"
@@ -84,15 +86,18 @@ func remove(flashcard *[]FlashCard) bool {
 
 }
 
-func ask(flashcards []FlashCard) {
+func ask(flashcards []FlashCard) bool {
+	flashcardsLength := len(flashcards)
 
+	if flashcardsLength == 0 {
+		fmt.Println("No cards in-memory")
+		return false
+	}
 	fmt.Println("How many times to ask?")
 	times, err := strconv.Atoi(handleInput())
 	if err != nil {
 		fmt.Println("Not a valid number")
 	}
-
-	flashcardsLength := len(flashcards)
 
 	reseter := 0
 
@@ -118,10 +123,64 @@ func ask(flashcards []FlashCard) {
 
 		}
 	}
+
+	return true
+}
+
+func read(OGflashcards []FlashCard) []FlashCard {
+	fmt.Println("File name:")
+	fileName := handleInput()
+
+	var flashcards []FlashCard
+
+	data, err := os.ReadFile(fileName)
+	if err != nil {
+		fmt.Println("File not found.")
+		return OGflashcards
+	}
+
+	err = json.Unmarshal(data, &flashcards)
+	if err != nil {
+		fmt.Println(err)
+		return OGflashcards
+	}
+
+	for _, value := range flashcards {
+
+		isDuplicated, key := checkDuplicateTerm(value.Term, OGflashcards)
+
+		if isDuplicated {
+			OGflashcards[key] = value
+		} else {
+			OGflashcards = append(OGflashcards, value)
+		}
+	}
+
+	fmt.Printf("%d cards have been loaded. \n", len(flashcards))
+	return OGflashcards
+
+}
+
+func export(flashcards []FlashCard) {
+	fmt.Println("File name:")
+	fileName := handleInput()
+
+	data, err := json.Marshal(flashcards)
+	if err != nil {
+		log.Fatal(err) // exit the program if we have an unexpected error
+	}
+
+	if err = os.WriteFile(fileName, data, 0644); err != nil {
+		log.Fatal(err) // exit the program if we have an unexpected error
+	}
+
+	fmt.Printf("%d cards have been saved. \n", len(flashcards))
+
 }
 
 type FlashCard struct {
-	Term, Definition string
+	Term       string `json:"term"`
+	Definition string `json:"definition"`
 }
 
 func main() {
@@ -144,10 +203,10 @@ func main() {
 			remove(&flashcards)
 			break
 		case "import":
-			fmt.Println("import")
+			flashcards = read(flashcards)
 			break
 		case "export":
-			fmt.Println("export")
+			export(flashcards)
 			break
 		case "ask":
 			ask(flashcards)
@@ -162,17 +221,5 @@ func main() {
 	}
 
 	fmt.Println("Bye bye!")
-
-	//fmt.Print("Input the number of cards: \n")
-	//quantity, _ = strconv.Atoi(handleInput())
-	//
-	//if quantity <= 0 {
-	//	err := errors.New("not a valid quantity")
-	//	fmt.Print(err)
-	//}
-	//
-	//flashcards := buildingFlashCards(quantity)
-	//
-	//usingFlashCards(flashcards)
 
 }

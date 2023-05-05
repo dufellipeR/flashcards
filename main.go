@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 )
 
@@ -13,30 +14,37 @@ func handleInput() string {
 	return strings.TrimSpace(line)
 }
 
-func checkDuplicateDefinition(definition string, flashcards map[string]string) (bool, string) {
-	for key, value := range flashcards {
-		if value == definition {
-			return true, key
+func checkDuplicateDefinition(definition string, flashcards []FlashCard) (bool, string) {
+	for _, value := range flashcards {
+		if value.Definition == definition {
+			return true, value.Term
 		}
 	}
 	return false, ""
 }
 
-func checkDuplicateTerm(term string, flashcards map[string]string) bool {
-	_, ok := flashcards[term]
-	return ok
+func checkDuplicateTerm(term string, flashcards []FlashCard) (bool, int) {
+
+	for key, value := range flashcards {
+		if value.Term == term {
+			return true, key
+		}
+	}
+	return false, -1
 }
 
-func add(flashcards map[string]string) (string, string) {
+func create(flashcards []FlashCard) FlashCard {
+
+	var flashcard FlashCard
 
 	fmt.Println("The card:")
 	term := handleInput()
-	isDuplicated := checkDuplicateTerm(term, flashcards)
+	isDuplicated, _ := checkDuplicateTerm(term, flashcards)
 
 	for isDuplicated {
 		fmt.Printf("The card \"%s\" already exists. Try again: \n", term)
 		term = handleInput()
-		isDuplicated = checkDuplicateTerm(term, flashcards)
+		isDuplicated, _ = checkDuplicateTerm(term, flashcards)
 	}
 
 	fmt.Println("The definition of the card:")
@@ -49,51 +57,77 @@ func add(flashcards map[string]string) (string, string) {
 		isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
 	}
 
-	return term, definition
+	flashcard.Term = term
+	flashcard.Definition = definition
+
+	return flashcard
 }
 
-func remove(flashcard *map[string]string) bool {
-	var pFlashcard *map[string]string
+func remove(flashcard *[]FlashCard) bool {
+	var pFlashcard *[]FlashCard
 	pFlashcard = flashcard
 
 	fmt.Println("Which card?")
 	card := handleInput()
 
-	if isDuplicated := checkDuplicateTerm(card, *pFlashcard); !isDuplicated {
+	isDuplicated, key := checkDuplicateTerm(card, *pFlashcard)
+
+	if !isDuplicated {
 		fmt.Printf("Can't remove \"%s\": there is no such card. \n", card)
 		return false
 	}
 
-	delete(*pFlashcard, card)
+	*pFlashcard = append((*pFlashcard)[:key], (*pFlashcard)[key+1:]...)
+
 	fmt.Println("The card has been removed.")
 	return true
 
 }
 
-func ask(flashcards map[string]string) {
+func ask(flashcards []FlashCard) {
 
-	for key, value := range flashcards {
-		fmt.Printf("Print the definition of \"%s\": \n", key)
+	fmt.Println("How many times to ask?")
+	times, err := strconv.Atoi(handleInput())
+	if err != nil {
+		fmt.Println("Not a valid number")
+	}
+
+	flashcardsLength := len(flashcards)
+
+	reseter := 0
+
+	for i := 0; i < times; i++ {
+
+		reseter++
+		if reseter > flashcardsLength-1 {
+			reseter = 0
+		}
+
+		fmt.Printf("Print the definition of \"%s\": \n", flashcards[reseter].Term)
 		answer := handleInput()
-		if answer == value {
+		if answer == flashcards[reseter].Definition {
 			fmt.Println("Correct!")
 		} else {
 			duplicated, term := checkDuplicateDefinition(answer, flashcards)
 
 			if duplicated {
-				fmt.Printf("Wrong. The right answer is \"%s\", but your definition is correct for \"%s\". \n", value, term)
+				fmt.Printf("Wrong. The right answer is \"%s\", but your definition is correct for \"%s\". \n", flashcards[reseter].Definition, term)
 			} else {
-				fmt.Printf("Wrong. The right answer is \"%s\". \n", value)
+				fmt.Printf("Wrong. The right answer is \"%s\". \n", flashcards[reseter].Definition)
 			}
 
 		}
 	}
 }
 
+type FlashCard struct {
+	Term, Definition string
+}
+
 func main() {
 
 	action := ""
-	flashcards := make(map[string]string)
+	var flashcards []FlashCard
 
 	for action != "exit" {
 
@@ -102,9 +136,9 @@ func main() {
 
 		switch action {
 		case "add":
-			term, definition := add(flashcards)
-			flashcards[term] = definition
-			fmt.Printf("The pair (\"%s\": \"%s\") has been added. ", term, definition)
+			flashcard := create(flashcards)
+			flashcards = append(flashcards, flashcard)
+			fmt.Printf("The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition)
 			break
 		case "remove":
 			remove(&flashcards)

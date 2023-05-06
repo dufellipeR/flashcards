@@ -35,27 +35,41 @@ func checkDuplicateTerm(term string, flashcards []FlashCard) (bool, int) {
 	return false, -1
 }
 
-func create(flashcards []FlashCard) FlashCard {
+func create(flashcards []FlashCard, tracker strings.Builder) FlashCard {
 
 	var flashcard FlashCard
 
 	fmt.Println("The card:")
+	tracker.WriteString("The card:")
+
 	term := handleInput()
+	tracker.WriteString(term)
+
 	isDuplicated, _ := checkDuplicateTerm(term, flashcards)
 
 	for isDuplicated {
 		fmt.Printf("The card \"%s\" already exists. Try again: \n", term)
+		tracker.WriteString(fmt.Sprintf("The card \"%s\" already exists. Try again: \n", term))
 		term = handleInput()
+		tracker.WriteString(term)
 		isDuplicated, _ = checkDuplicateTerm(term, flashcards)
 	}
 
 	fmt.Println("The definition of the card:")
+	tracker.WriteString("The definition of the card:")
+
 	definition := handleInput()
+	tracker.WriteString(definition)
+
 	isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
 
 	for isDuplicated {
 		fmt.Printf("The definition \"%s\" already exists. Try again: \n", definition)
+		tracker.WriteString(fmt.Sprintf("The definition \"%s\" already exists. Try again: \n", definition))
+
 		definition = handleInput()
+		tracker.WriteString(definition)
+
 		isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
 	}
 
@@ -178,40 +192,84 @@ func export(flashcards []FlashCard) {
 
 }
 
-func hardest(flashcards []FlashCard) {
+func hardest(flashcards []FlashCard) bool {
+	hardestCards := ""
+	mistakesCount := 0
+	multipleTerms := false
+	for _, value := range flashcards {
+		if value.Mistakes > mistakesCount {
+			hardestCards = fmt.Sprintf("\"%s\"", value.Term)
+			mistakesCount = value.Mistakes
+		} else if value.Mistakes == mistakesCount && mistakesCount != 0 {
+			multipleTerms = true
+			hardestCards += fmt.Sprintf(", \"%s\"", value.Term)
+		}
+	}
+
+	if mistakesCount == 0 {
+		fmt.Println("There are no cards with errors.")
+		return false
+	}
+
+	if multipleTerms {
+		fmt.Printf("The hardest cards are %s", hardestCards)
+	} else {
+		fmt.Printf("The hardest card is %s. You have %d errors answering it", hardestCards, mistakesCount)
+	}
+
+	return true
 
 }
 
 func reset(flashcards []FlashCard) {
+	for _, value := range flashcards {
+		value.Mistakes = 0
+	}
 
+	fmt.Println("Card statistics have been reset.")
 }
 
-func tracking(flashcards []FlashCard) {
+func tracking(tracker strings.Builder) {
+	fmt.Println("File name: ")
+	fileName := handleInput()
 
+	if err := os.WriteFile(fileName, []byte(tracker.String()), 0644); err != nil {
+		log.Fatal(err) // exit the program if we have an unexpected error
+	}
+
+	fmt.Println("The log has been saved.")
 }
 
 type FlashCard struct {
 	Term       string `json:"term"`
 	Definition string `json:"definition"`
+	Mistakes   int    `json:"mistakes"`
 }
 
 func main() {
 
 	action := ""
 	var flashcards []FlashCard
+	var tracker strings.Builder
 
 	for action != "exit" {
 
 		fmt.Println("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ")
 		action = handleInput()
 
+		tracker.WriteString("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ")
+		tracker.WriteString(action)
+
 		switch action {
 		case "exit":
 			break
 		case "add":
-			flashcard := create(flashcards)
+			flashcard := create(flashcards, tracker)
 			flashcards = append(flashcards, flashcard)
+
 			fmt.Printf("The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition)
+			tracker.WriteString(fmt.Sprintf("The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition))
+
 			break
 		case "remove":
 			remove(&flashcards)
@@ -226,7 +284,7 @@ func main() {
 			ask(flashcards)
 			break
 		case "log":
-			tracking(flashcards)
+			tracking(tracker)
 			break
 		case "hardest card":
 			hardest(flashcards)
@@ -237,10 +295,12 @@ func main() {
 
 		default:
 			fmt.Printf("`%s` is not a valid action. \n", action)
+			tracker.WriteString(fmt.Sprintf("`%s` is not a valid action. \n", action))
 		}
 
 	}
 
 	fmt.Println("Bye bye!")
+	tracker.WriteString("Bye bye!")
 
 }

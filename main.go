@@ -178,6 +178,18 @@ func export(flashcards []FlashCard) {
 
 }
 
+func hardest(flashcards []FlashCard) {
+
+}
+
+func reset(flashcards []FlashCard) {
+
+}
+
+func tracking(flashcards []FlashCard) {
+
+}
+
 type FlashCard struct {
 	Term       string `json:"term"`
 	Definition string `json:"definition"`
@@ -190,10 +202,12 @@ func main() {
 
 	for action != "exit" {
 
-		fmt.Println("Input the action (add, remove, import, export, ask, exit): ")
+		fmt.Println("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ")
 		action = handleInput()
 
 		switch action {
+		case "exit":
+			break
 		case "add":
 			flashcard := create(flashcards)
 			flashcards = append(flashcards, flashcard)
@@ -211,7 +225,14 @@ func main() {
 		case "ask":
 			ask(flashcards)
 			break
-		case "exit":
+		case "log":
+			tracking(flashcards)
+			break
+		case "hardest card":
+			hardest(flashcards)
+			break
+		case "reset stats":
+			reset(flashcards)
 			break
 
 		default:

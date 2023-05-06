@@ -10,10 +10,22 @@ import (
 	"strings"
 )
 
-func handleInput() string {
+func handleInput(tracker *strings.Builder) string {
 	reader := bufio.NewReader(os.Stdin)
 	line, _ := reader.ReadString('\n')
+	tracker.WriteString(strings.TrimSpace(line) + "\n")
+
 	return strings.TrimSpace(line)
+}
+
+func trackedPrintln(a string, tracker *strings.Builder) {
+	fmt.Println(a)
+	tracker.WriteString(a + "\n")
+}
+
+func trackedPrintf(tracker *strings.Builder, format string, args ...interface{}) {
+	fmt.Printf(format, args...)
+	tracker.WriteString(fmt.Sprintf(format, args...))
 }
 
 func checkDuplicateDefinition(definition string, flashcards []FlashCard) (bool, string) {
@@ -35,40 +47,29 @@ func checkDuplicateTerm(term string, flashcards []FlashCard) (bool, int) {
 	return false, -1
 }
 
-func create(flashcards []FlashCard, tracker strings.Builder) FlashCard {
+func create(flashcards []FlashCard, tracker *strings.Builder) FlashCard {
 
 	var flashcard FlashCard
 
-	fmt.Println("The card:")
-	tracker.WriteString("The card:")
-
-	term := handleInput()
-	tracker.WriteString(term)
+	trackedPrintln("The card:", tracker)
+	term := handleInput(tracker)
 
 	isDuplicated, _ := checkDuplicateTerm(term, flashcards)
 
 	for isDuplicated {
-		fmt.Printf("The card \"%s\" already exists. Try again: \n", term)
-		tracker.WriteString(fmt.Sprintf("The card \"%s\" already exists. Try again: \n", term))
-		term = handleInput()
-		tracker.WriteString(term)
+		trackedPrintf(tracker, "The card \"%s\" already exists. Try again: \n", term)
+		term = handleInput(tracker)
 		isDuplicated, _ = checkDuplicateTerm(term, flashcards)
 	}
 
-	fmt.Println("The definition of the card:")
-	tracker.WriteString("The definition of the card:")
-
-	definition := handleInput()
-	tracker.WriteString(definition)
+	trackedPrintln("The definition of the card:", tracker)
+	definition := handleInput(tracker)
 
 	isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
 
 	for isDuplicated {
-		fmt.Printf("The definition \"%s\" already exists. Try again: \n", definition)
-		tracker.WriteString(fmt.Sprintf("The definition \"%s\" already exists. Try again: \n", definition))
-
-		definition = handleInput()
-		tracker.WriteString(definition)
+		trackedPrintf(tracker, "The definition \"%s\" already exists. Try again: \n", definition)
+		definition = handleInput(tracker)
 
 		isDuplicated, _ = checkDuplicateDefinition(definition, flashcards)
 	}
@@ -79,38 +80,39 @@ func create(flashcards []FlashCard, tracker strings.Builder) FlashCard {
 	return flashcard
 }
 
-func remove(flashcard *[]FlashCard) bool {
+func remove(flashcard *[]FlashCard, tracker *strings.Builder) bool {
 	var pFlashcard *[]FlashCard
 	pFlashcard = flashcard
 
-	fmt.Println("Which card?")
-	card := handleInput()
+	trackedPrintln("Which card?", tracker)
+
+	card := handleInput(tracker)
 
 	isDuplicated, key := checkDuplicateTerm(card, *pFlashcard)
 
 	if !isDuplicated {
-		fmt.Printf("Can't remove \"%s\": there is no such card. \n", card)
+		trackedPrintf(tracker, "Can't remove \"%s\": there is no such card. \n", card)
 		return false
 	}
 
 	*pFlashcard = append((*pFlashcard)[:key], (*pFlashcard)[key+1:]...)
 
-	fmt.Println("The card has been removed.")
+	trackedPrintln("The card has been removed.", tracker)
 	return true
 
 }
 
-func ask(flashcards []FlashCard) bool {
+func ask(flashcards []FlashCard, tracker *strings.Builder) bool {
 	flashcardsLength := len(flashcards)
 
 	if flashcardsLength == 0 {
-		fmt.Println("No cards in-memory")
+		trackedPrintln("No cards in-memory", tracker)
 		return false
 	}
-	fmt.Println("How many times to ask?")
-	times, err := strconv.Atoi(handleInput())
+	trackedPrintln("How many times to ask?", tracker)
+	times, err := strconv.Atoi(handleInput(tracker))
 	if err != nil {
-		fmt.Println("Not a valid number")
+		trackedPrintln("Not a valid number", tracker)
 	}
 
 	reseter := 0
@@ -122,17 +124,18 @@ func ask(flashcards []FlashCard) bool {
 			reseter = 0
 		}
 
-		fmt.Printf("Print the definition of \"%s\": \n", flashcards[reseter].Term)
-		answer := handleInput()
+		trackedPrintf(tracker, "Print the definition of \"%s\": \n", flashcards[reseter].Term)
+		answer := handleInput(tracker)
 		if answer == flashcards[reseter].Definition {
-			fmt.Println("Correct!")
+			trackedPrintln("Correct!", tracker)
 		} else {
+			flashcards[reseter].Mistakes += 1
 			duplicated, term := checkDuplicateDefinition(answer, flashcards)
 
 			if duplicated {
-				fmt.Printf("Wrong. The right answer is \"%s\", but your definition is correct for \"%s\". \n", flashcards[reseter].Definition, term)
+				trackedPrintf(tracker, "Wrong. The right answer is \"%s\", but your definition is correct for \"%s\". \n", flashcards[reseter].Definition, term)
 			} else {
-				fmt.Printf("Wrong. The right answer is \"%s\". \n", flashcards[reseter].Definition)
+				trackedPrintf(tracker, "Wrong. The right answer is \"%s\". \n", flashcards[reseter].Definition)
 			}
 
 		}
@@ -141,15 +144,15 @@ func ask(flashcards []FlashCard) bool {
 	return true
 }
 
-func read(OGflashcards []FlashCard) []FlashCard {
-	fmt.Println("File name:")
-	fileName := handleInput()
+func read(OGflashcards []FlashCard, tracker *strings.Builder) []FlashCard {
+	trackedPrintln("File name:", tracker)
+	fileName := handleInput(tracker)
 
 	var flashcards []FlashCard
 
 	data, err := os.ReadFile(fileName)
 	if err != nil {
-		fmt.Println("File not found.")
+		trackedPrintln("File not found.", tracker)
 		return OGflashcards
 	}
 
@@ -175,9 +178,9 @@ func read(OGflashcards []FlashCard) []FlashCard {
 
 }
 
-func export(flashcards []FlashCard) {
-	fmt.Println("File name:")
-	fileName := handleInput()
+func export(flashcards []FlashCard, tracker *strings.Builder) {
+	trackedPrintln("File name:", tracker)
+	fileName := handleInput(tracker)
 
 	data, err := json.Marshal(flashcards)
 	if err != nil {
@@ -188,11 +191,11 @@ func export(flashcards []FlashCard) {
 		log.Fatal(err) // exit the program if we have an unexpected error
 	}
 
-	fmt.Printf("%d cards have been saved. \n", len(flashcards))
+	trackedPrintf(tracker, "%d cards have been saved. \n", len(flashcards))
 
 }
 
-func hardest(flashcards []FlashCard) bool {
+func hardest(flashcards []FlashCard, tracker *strings.Builder) bool {
 	hardestCards := ""
 	mistakesCount := 0
 	multipleTerms := false
@@ -207,37 +210,38 @@ func hardest(flashcards []FlashCard) bool {
 	}
 
 	if mistakesCount == 0 {
-		fmt.Println("There are no cards with errors.")
+		trackedPrintln("There are no cards with errors.", tracker)
 		return false
 	}
 
 	if multipleTerms {
-		fmt.Printf("The hardest cards are %s", hardestCards)
+		trackedPrintf(tracker, "The hardest card is %s. You have %d errors answering it \n", hardestCards, mistakesCount)
 	} else {
-		fmt.Printf("The hardest card is %s. You have %d errors answering it", hardestCards, mistakesCount)
+		trackedPrintf(tracker, "The hardest card is %s. You have %d errors answering it \n", hardestCards, mistakesCount)
+
 	}
 
 	return true
 
 }
 
-func reset(flashcards []FlashCard) {
-	for _, value := range flashcards {
-		value.Mistakes = 0
+func reset(flashcards *[]FlashCard, tracker *strings.Builder) {
+	for key, _ := range *flashcards {
+		(*flashcards)[key].Mistakes = 0
 	}
 
-	fmt.Println("Card statistics have been reset.")
+	trackedPrintln("Card statistics have been reset.", tracker)
 }
 
-func tracking(tracker strings.Builder) {
-	fmt.Println("File name: ")
-	fileName := handleInput()
+func tracking(tracker *strings.Builder) {
+	trackedPrintln("File name: ", tracker)
+	fileName := handleInput(tracker)
 
 	if err := os.WriteFile(fileName, []byte(tracker.String()), 0644); err != nil {
 		log.Fatal(err) // exit the program if we have an unexpected error
 	}
 
-	fmt.Println("The log has been saved.")
+	trackedPrintln("The log has been saved.", tracker)
 }
 
 type FlashCard struct {
@@ -254,53 +258,47 @@ func main() {
 
 	for action != "exit" {
 
-		fmt.Println("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ")
-		action = handleInput()
-
-		tracker.WriteString("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ")
-		tracker.WriteString(action)
+		trackedPrintln("Input the action (add, remove, import, export, ask, exit, log, hardest card, reset stats): ", &tracker)
+		action = handleInput(&tracker)
 
 		switch action {
 		case "exit":
 			break
 		case "add":
-			flashcard := create(flashcards, tracker)
+
+			flashcard := create(flashcards, &tracker)
 			flashcards = append(flashcards, flashcard)
 
-			fmt.Printf("The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition)
-			tracker.WriteString(fmt.Sprintf("The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition))
+			trackedPrintf(&tracker, "The pair (\"%s\": \"%s\") has been added. \n", flashcard.Term, flashcard.Definition)
 
 			break
 		case "remove":
-			remove(&flashcards)
+			remove(&flashcards, &tracker)
 			break
 		case "import":
-			flashcards = read(flashcards)
+			flashcards = read(flashcards, &tracker)
 			break
 		case "export":
-			export(flashcards)
+			export(flashcards, &tracker)
 			break
 		case "ask":
-			ask(flashcards)
+			ask(flashcards, &tracker)
 			break
 		case "log":
-			tracking(tracker)
+			tracking(&tracker)
 			break
 		case "hardest card":
-			hardest(flashcards)
+			hardest(flashcards, &tracker)
 			break
 		case "reset stats":
-			reset(flashcards)
+			reset(&flashcards, &tracker)
 			break
 
 		default:
-			fmt.Printf("`%s` is not a valid action. \n", action)
-			tracker.WriteString(fmt.Sprintf("`%s` is not a valid action. \n", action))
+			trackedPrintf(&tracker, "`%s` is not a valid action. \n", action)
 		}
-
 	}
 
-	fmt.Println("Bye bye!")
-	tracker.WriteString("Bye bye!")
+	trackedPrintln("Bye bye!", &tracker)
 
 }

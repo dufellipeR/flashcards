@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -144,9 +145,16 @@ func ask(flashcards []FlashCard, tracker *strings.Builder) bool {
 	return true
 }
 
-func read(OGflashcards []FlashCard, tracker *strings.Builder) []FlashCard {
-	trackedPrintln("File name:", tracker)
-	fileName := handleInput(tracker)
+func read(argFileName string, OGflashcards []FlashCard, tracker *strings.Builder) []FlashCard {
+
+	var fileName string
+
+	if argFileName == "" {
+		trackedPrintln("File name:", tracker)
+		fileName = handleInput(tracker)
+	} else {
+		fileName = argFileName
+	}
 
 	var flashcards []FlashCard
 
@@ -178,9 +186,16 @@ func read(OGflashcards []FlashCard, tracker *strings.Builder) []FlashCard {
 
 }
 
-func export(flashcards []FlashCard, tracker *strings.Builder) {
-	trackedPrintln("File name:", tracker)
-	fileName := handleInput(tracker)
+func export(argFileName string, flashcards []FlashCard, tracker *strings.Builder) {
+
+	var fileName string
+
+	if argFileName == "" {
+		trackedPrintln("File name:", tracker)
+		fileName = handleInput(tracker)
+	} else {
+		fileName = argFileName
+	}
 
 	data, err := json.Marshal(flashcards)
 	if err != nil {
@@ -252,9 +267,19 @@ type FlashCard struct {
 
 func main() {
 
+	importFrom := flag.String("import_from", "", "Filename to import flashcards")
+	exportTo := flag.String("export_to", "", "Filename to export flashcards")
+
+	flag.Parse()
+
 	action := ""
 	var flashcards []FlashCard
 	var tracker strings.Builder
+
+	if *importFrom != "" {
+		flashcards = read(*importFrom, flashcards, &tracker)
+
+	}
 
 	for action != "exit" {
 
@@ -276,10 +301,10 @@ func main() {
 			remove(&flashcards, &tracker)
 			break
 		case "import":
-			flashcards = read(flashcards, &tracker)
+			flashcards = read("", flashcards, &tracker)
 			break
 		case "export":
-			export(flashcards, &tracker)
+			export("", flashcards, &tracker)
 			break
 		case "ask":
 			ask(flashcards, &tracker)
@@ -297,6 +322,10 @@ func main() {
 		default:
 			trackedPrintf(&tracker, "`%s` is not a valid action. \n", action)
 		}
+	}
+
+	if *exportTo != "" {
+		export(*exportTo, flashcards, &tracker)
 	}
 
 	trackedPrintln("Bye bye!", &tracker)
